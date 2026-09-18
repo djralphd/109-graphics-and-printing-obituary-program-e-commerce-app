@@ -54,8 +54,8 @@ export default function Hero() {
 
           <dl className="mt-14 mx-auto grid max-w-2xl grid-cols-3 gap-6 border-t border-navy-800 pt-8 text-center">
             {[
-              { icon: Clock, label: 'Turnaround', value: '3–5 Business Days' },
-              { icon: ShieldCheck, label: 'Stock', value: '100 lb. Gloss Book' },
+              { icon: Clock, label: 'Turnaround', value: '3–5 Days' },
+              { icon: ShieldCheck, label: 'Stock', value: '100 lb. Gloss' },
               { icon: Sparkles, label: 'Binding', value: 'Saddle-Stitch' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center">

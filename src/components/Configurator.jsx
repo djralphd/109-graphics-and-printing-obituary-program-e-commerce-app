@@ -35,13 +35,13 @@ export default function Configurator({ onCheckout }) {
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[#C9A227]">
-              Price
+              Printing Price
             </span>
             <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight text-white sm:text-5xl">
               Build your program in a moment.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-white/60">
-              Choose a size, page count, and quantity. Your price updates
+              Choose a size, page count, and quantity. Your printing price updates
               instantly — no hidden fees.
             </p>
           </div>
@@ -179,7 +179,7 @@ export default function Configurator({ onCheckout }) {
                   />
                 )}
                 <Row
-                  label="CA sales tax (10.25%)"
+                  label="Sales Tax"
                   value={formatUSD(price.tax)}
                 />
                 <div className="border-t border-white/10 pt-4">
@@ -201,7 +201,7 @@ export default function Configurator({ onCheckout }) {
                 Continue to checkout
               </button>
               <p className="mt-4 text-center text-xs text-white/40">
-                No payment required to start your design.
+                Additional payment is required if you need a design.
               </p>
             </div>
           </Reveal>

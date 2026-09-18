@@ -1,62 +1,52 @@
+// src/lib/pricing.js
+
 export const SIZES = [
-  { id: 'letter', label: '8.5 × 11 in.', desc: 'Standard letter', multiplier: 1 },
-  { id: 'half', label: '5.5 × 8.5 in.', desc: 'Half-fold booklet', multiplier: 0.82 },
-]
+  { id: 'letter', label: 'Standard (8.5" x 5.5")', desc: 'Folds from 8.5" x 11"' },
+  { id: 'tabloid', label: 'Large (8.5" x 11")', desc: 'Folds from 11" x 17"' }
+];
 
 export const PAGE_OPTIONS = [
-  { id: '8', label: '8 pages', pages: 8, base: 2.65 },
-  { id: '12', label: '12 pages', pages: 12, base: 3.45 },
-  { id: '16', label: '16 pages', pages: 16, base: 4.25 },
-  { id: '20', label: '20 pages', pages: 20, base: 5.05 },
-]
+  { id: '8', label: '8 Pages', base: 3.48 },
+  { id: '12', label: '12 Pages', base: 4.48 },
+  { id: '16', label: '16 Pages', base: 5.48 },
+  { id: '20', label: '20 Pages', base: 6.48 }
+];
 
-export const QUANTITY_TIERS = [
-  { min: 100, max: 199, rate: 0.84 },
-  { min: 200, max: 299, rate: 0.76 },
-  { min: 300, max: Infinity, rate: 0.68 },
-]
-
-export const TAX_RATE = 0.1025 // California sales tax
-
-export function getTierRate(quantity) {
-  const tier = QUANTITY_TIERS.find((t) => quantity >= t.min && quantity <= t.max)
-  return tier ? tier.rate : 0.84
-}
-
-export function calculatePrice({ sizeId, pageId, quantity, rush = false }) {
-  const size = SIZES.find((s) => s.id === sizeId) || SIZES[0]
-  const page = PAGE_OPTIONS.find((p) => p.id === pageId) || PAGE_OPTIONS[0]
-  const qty = Math.max(100, Number(quantity) || 100)
-
-  const unitBase = page.base * size.multiplier
-  const tierRate = getTierRate(qty)
-  const unitPrice = unitBase * tierRate
-  const subtotal = unitPrice * qty
-  const rushFee = rush ? subtotal * 0.25 : 0
-  const taxable = subtotal + rushFee
-  const tax = taxable * TAX_RATE
-  const total = taxable + tax
-
-  return {
-    size,
-    page,
-    quantity: qty,
-    unitPrice: round(unitPrice),
-    subtotal: round(subtotal),
-    rushFee: round(rushFee),
-    tax: round(tax),
-    total: round(total),
-    tierRate,
+const PRICING_MATRIX = {
+  'letter': { 
+    '8': { 100: 348, 200: 582, 300: 805 },
+    '12': { 100: 448, 200: 771, 300: 1084 },
+    '16': { 100: 548, 200: 956, 300: 1348 },
+    '20': { 100: 648, 200: 1148, 300: 1645 }
+  },
+  'tabloid': { 
+    '8': { 100: 519, 200: 807, 300: 1075 },
+    '12': { 100: 649, 200: 1059, 300: 1445 },
+    '16': { 100: 784, 200: 1307, 300: 1787 },
+    '20': { 100: 917, 200: 1565, 300: 2207 }
   }
+};
+
+export function calculatePrice({ sizeId, pageId, quantity, rush }) {
+  const size = SIZES.find((s) => s.id === sizeId) || SIZES[0];
+  const page = PAGE_OPTIONS.find((p) => p.id === pageId) || PAGE_OPTIONS[0];
+
+  // Get exact price from matrix
+  const subtotal = PRICING_MATRIX[sizeId][pageId][quantity];
+  const unitPrice = subtotal / quantity;
+
+  // 25% rush fee
+  const rushFee = rush ? subtotal * 0.25 : 0;
+
+  // CA Sales Tax (10.25%)
+  const taxRate = 0.1025;
+  const tax = (subtotal + rushFee) * taxRate;
+
+  const total = subtotal + rushFee + tax;
+
+  return { size, page, quantity, unitPrice, subtotal, rushFee, tax, total };
 }
 
-function round(n) {
-  return Math.round(n * 100) / 100
-}
-
-export function formatUSD(n) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(n)
+export function formatUSD(amount) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
