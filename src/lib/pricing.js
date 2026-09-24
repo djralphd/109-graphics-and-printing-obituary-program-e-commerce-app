@@ -12,14 +12,22 @@ export const PAGE_OPTIONS = [
   { id: '20', label: '20 Pages', base: 6.48 }
 ];
 
+// Quantity is fixed to these preset tiers only — no manual entry.
+export const QUANTITY_OPTIONS = [100, 200, 300];
+
+export const DESIGN_OPTIONS = [
+  { id: 'none', label: 'No design needed', desc: 'I have print-ready artwork' },
+  { id: 'yes', label: 'Yes, please design it for me', desc: 'Our team designs your program' }
+];
+
 const PRICING_MATRIX = {
-  'letter': { 
+  'letter': {
     '8': { 100: 348, 200: 582, 300: 805 },
     '12': { 100: 448, 200: 771, 300: 1084 },
     '16': { 100: 548, 200: 956, 300: 1348 },
     '20': { 100: 648, 200: 1148, 300: 1645 }
   },
-  'tabloid': { 
+  'tabloid': {
     '8': { 100: 519, 200: 807, 300: 1075 },
     '12': { 100: 649, 200: 1059, 300: 1445 },
     '16': { 100: 784, 200: 1307, 300: 1787 },
@@ -27,24 +35,60 @@ const PRICING_MATRIX = {
   }
 };
 
-export function calculatePrice({ sizeId, pageId, quantity, rush }) {
+// Design service charge — flat fee based on size + page count.
+// 8.5" x 5.5"  → $250 / $350 / $450 / $550  (8 / 12 / 16 / 20 pages)
+// 8.5" x 11"   → $450 / $650 / $850 / $950  (8 / 12 / 16 / 20 pages)
+const DESIGN_MATRIX = {
+  'letter': {
+    '8': 250,
+    '12': 350,
+    '16': 450,
+    '20': 550
+  },
+  'tabloid': {
+    '8': 450,
+    '12': 650,
+    '16': 850,
+    '20': 950
+  }
+};
+
+export function getDesignFee({ sizeId, pageId }) {
+  return DESIGN_MATRIX[sizeId]?.[pageId] ?? 0;
+}
+
+export function calculatePrice({ sizeId, pageId, quantity, rush, designId = 'none' }) {
   const size = SIZES.find((s) => s.id === sizeId) || SIZES[0];
   const page = PAGE_OPTIONS.find((p) => p.id === pageId) || PAGE_OPTIONS[0];
 
-  // Get exact price from matrix
+  // Exact printing price from matrix
   const subtotal = PRICING_MATRIX[sizeId][pageId][quantity];
   const unitPrice = subtotal / quantity;
 
-  // 25% rush fee
+  // 25% rush fee on printing
   const rushFee = rush ? subtotal * 0.25 : 0;
 
-  // CA Sales Tax (10.25%)
+  // Design service charge (flat, only when requested)
+  const designFee = designId === 'yes' ? getDesignFee({ sizeId, pageId }) : 0;
+
+  // CA Sales Tax (10.25%) applies to printing + rush + design
   const taxRate = 0.1025;
-  const tax = (subtotal + rushFee) * taxRate;
+  const tax = (subtotal + rushFee + designFee) * taxRate;
 
-  const total = subtotal + rushFee + tax;
+  const total = subtotal + rushFee + designFee + tax;
 
-  return { size, page, quantity, unitPrice, subtotal, rushFee, tax, total };
+  return {
+    size,
+    page,
+    quantity,
+    unitPrice,
+    subtotal,
+    rushFee,
+    designFee,
+    designId,
+    tax,
+    total
+  };
 }
 
 export function formatUSD(amount) {

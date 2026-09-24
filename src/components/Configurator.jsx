@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react'
-import { Upload, Check, Zap, FileText, Layers, Hash } from 'lucide-react'
+import { Upload, Check, Zap, FileText, Layers, Hash, Palette, ChevronDown } from 'lucide-react'
 import {
   SIZES,
   PAGE_OPTIONS,
+  QUANTITY_OPTIONS,
+  DESIGN_OPTIONS,
   calculatePrice,
+  getDesignFee,
   formatUSD,
 } from '../lib/pricing.js'
 import { Reveal } from './Reveal.jsx'
@@ -11,13 +14,19 @@ import { Reveal } from './Reveal.jsx'
 export default function Configurator({ onCheckout }) {
   const [sizeId, setSizeId] = useState('letter')
   const [pageId, setPageId] = useState('8')
-  const [quantity, setQuantity] = useState(100)
+  const [quantity, setQuantity] = useState(QUANTITY_OPTIONS[0])
   const [rush, setRush] = useState(false)
+  const [designId, setDesignId] = useState('none')
   const [fileName, setFileName] = useState('')
 
   const price = useMemo(
-    () => calculatePrice({ sizeId, pageId, quantity, rush }),
-    [sizeId, pageId, quantity, rush]
+    () => calculatePrice({ sizeId, pageId, quantity, rush, designId }),
+    [sizeId, pageId, quantity, rush, designId]
+  )
+
+  const designFee = useMemo(
+    () => getDesignFee({ sizeId, pageId }),
+    [sizeId, pageId]
   )
 
   const handleFile = (e) => {
@@ -78,13 +87,37 @@ export default function Configurator({ onCheckout }) {
                 </div>
               </Field>
 
+              <Field icon={Palette} label="Design services">
+                <div className="relative">
+                  <select
+                    value={designId}
+                    onChange={(e) => setDesignId(e.target.value)}
+                    className="w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 pr-12 text-sm font-semibold text-white outline-none transition-colors focus:border-[#C9A227] focus:bg-white/[0.05]"
+                    aria-label="Design services"
+                  >
+                    {DESIGN_OPTIONS.map((d) => (
+                      <option key={d.id} value={d.id} className="bg-[#111A2E] text-white">
+                        {d.label} — {d.id === 'yes' ? formatUSD(designFee) : '$0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#C9A227]" />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-white/45">
+                  {DESIGN_OPTIONS.find((d) => d.id === designId)?.desc}
+                  {designId === 'yes' &&
+                    ` · ${formatUSD(designFee)} flat for this size & page count.`}
+                </p>
+              </Field>
+
               <Field icon={Hash} label="Quantity">
                 <div className="flex flex-wrap items-center gap-3">
-                  {[100, 200, 300].map((q) => (
+                  {QUANTITY_OPTIONS.map((q) => (
                     <button
                       key={q}
+                      type="button"
                       onClick={() => setQuantity(q)}
-                      className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                      className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
                         quantity === q
                           ? 'bg-[#C9A227] text-[#0B1120] shadow-lg shadow-[#C9A227]/25'
                           : 'border border-white/10 bg-white/5 text-white/70 hover:border-white/25 hover:text-white'
@@ -93,14 +126,9 @@ export default function Configurator({ onCheckout }) {
                       {q}
                     </button>
                   ))}
-                  <input
-                    type="number"
-                    min={100}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-28 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white outline-none transition-colors focus:border-[#C9A227]"
-                    aria-label="Custom quantity"
-                  />
+                  <span className="text-xs text-white/40">
+                    If you need more then call.
+                  </span>
                 </div>
               </Field>
 
@@ -127,6 +155,7 @@ export default function Configurator({ onCheckout }) {
               </Field>
 
               <button
+                type="button"
                 onClick={() => setRush((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all ${
                   rush
@@ -171,17 +200,20 @@ export default function Configurator({ onCheckout }) {
 
               <div className="mt-7 space-y-3.5 text-sm">
                 <Row label="Unit price" value={formatUSD(price.unitPrice)} />
-                <Row label="Subtotal" value={formatUSD(price.subtotal)} />
+                <Row label="Printing subtotal" value={formatUSD(price.subtotal)} />
                 {rush && (
                   <Row
                     label="Rush service (25%)"
                     value={formatUSD(price.rushFee)}
                   />
                 )}
-                <Row
-                  label="Sales Tax"
-                  value={formatUSD(price.tax)}
-                />
+                {price.designFee > 0 && (
+                  <Row
+                    label="Design services"
+                    value={formatUSD(price.designFee)}
+                  />
+                )}
+                <Row label="Sales Tax" value={formatUSD(price.tax)} />
                 <div className="border-t border-white/10 pt-4">
                   <div className="flex items-baseline justify-between">
                     <span className="text-base font-semibold text-white">
@@ -195,13 +227,15 @@ export default function Configurator({ onCheckout }) {
               </div>
 
               <button
-                onClick={() => onCheckout({ ...price, rush, fileName })}
+                onClick={() => onCheckout({ ...price, rush, designId, fileName })}
                 className="mt-8 w-full rounded-full bg-gradient-to-r from-[#C9A227] to-[#A8861B] px-6 py-4 text-base font-semibold text-[#0B1120] shadow-xl shadow-[#C9A227]/25 transition-all hover:brightness-110"
               >
                 Continue to checkout
               </button>
               <p className="mt-4 text-center text-xs text-white/40">
-                Additional payment is required if you need a design.
+                {price.designId === 'yes'
+                  ? 'Design service included in your total above.'
+                  : 'Additional payment is required if you need a design.'}
               </p>
             </div>
           </Reveal>
@@ -228,6 +262,7 @@ function Field({ icon: Icon, label, children }) {
 function OptionCard({ active, onClick, title, subtitle }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`rounded-2xl border px-4 py-4 text-left transition-all ${
         active
