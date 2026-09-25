@@ -11,13 +11,14 @@ import {
 } from '../lib/pricing.js'
 import { Reveal } from './Reveal.jsx'
 
-export default function Configurator({ onCheckout }) {
+export default function Configurator() {
   const [sizeId, setSizeId] = useState('letter')
   const [pageId, setPageId] = useState('8')
   const [quantity, setQuantity] = useState(QUANTITY_OPTIONS[0])
   const [rush, setRush] = useState(false)
   const [designId, setDesignId] = useState('none')
   const [fileName, setFileName] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   const price = useMemo(
     () => calculatePrice({ sizeId, pageId, quantity, rush, designId }),
@@ -32,6 +33,45 @@ export default function Configurator({ onCheckout }) {
   const handleFile = (e) => {
     const f = e.target.files?.[0]
     if (f) setFileName(f.name)
+  }
+
+  const handleCheckout = async () => {
+    if (processing) return
+    setProcessing(true)
+
+    try {
+      const payload = {
+        size: sizeId,
+        pages: parseInt(pageId, 10),
+        quantity,
+        design: designId,
+        rush,
+        total: price.total,
+      }
+
+      const response = await fetch('https://obituary.109graphics.com/checkout.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.url) {
+        throw new Error('No checkout URL returned')
+      }
+
+      window.location.href = data.url
+    } catch (error) {
+      alert('We could not start checkout. Please try again or call (323) 526-1346.')
+      setProcessing(false)
+    }
   }
 
   return (
@@ -227,10 +267,16 @@ export default function Configurator({ onCheckout }) {
               </div>
 
               <button
-                onClick={() => onCheckout({ ...price, rush, designId, fileName })}
-                className="mt-8 w-full rounded-full bg-gradient-to-r from-[#C9A227] to-[#A8861B] px-6 py-4 text-base font-semibold text-[#0B1120] shadow-xl shadow-[#C9A227]/25 transition-all hover:brightness-110"
+                type="button"
+                onClick={handleCheckout}
+                disabled={processing}
+                className={`mt-8 w-full rounded-full bg-gradient-to-r from-[#C9A227] to-[#A8861B] px-6 py-4 text-base font-semibold text-[#0B1120] shadow-xl shadow-[#C9A227]/25 transition-all ${
+                  processing
+                    ? 'cursor-not-allowed opacity-70'
+                    : 'hover:brightness-110'
+                }`}
               >
-                Continue to checkout
+                {processing ? 'Processing...' : 'Proceed to Checkout'}
               </button>
               <p className="mt-4 text-center text-xs text-white/40">
                 {price.designId === 'yes'
